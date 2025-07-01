@@ -1,0 +1,54 @@
+# Environment variables
+# Ignore sensitive credentials and local environment configurations.
+.env
+
+# Local state files
+# Ignore process ID files or other temporary state files.
+.port-forward.pid
+
+# Python
+# Byte-compiled / optimized / C extensions
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+eggs/
+
+# Python virtualenv
+.venv/
+venv/
+env/
+ENV/
+
+# Test & coverage reports
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+
+# mypy cache
+.mypy_cache/
+
+# Ruff cache
+.ruff_cache/
+
+# IDE & Editor directories
+.vscode/
+.idea/
+
+# macOS system files
+.DS_Store
+
+# Log files
+*.log
+logs/
+.log 
+.source

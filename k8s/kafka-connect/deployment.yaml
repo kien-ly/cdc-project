@@ -1,0 +1,202 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-connect
+  namespace: cdc-project
+  labels:
+    app: kafka-connect
+    component: cdc-pipeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-connect
+  template:
+    metadata:
+      labels:
+        app: kafka-connect
+        component: cdc-pipeline
+    spec:
+      containers:
+      - name: kafka-connect
+        image: confluentinc/cp-kafka-connect:7.4.0
+        ports:
+        - containerPort: 8083
+          name: rest-api
+        env:
+        # Kafka Connect configuration
+        - name: CONNECT_BOOTSTRAP_SERVERS
+          value: "redpanda-0.redpanda.cdc-project.svc.cluster.local:9093,redpanda-1.redpanda.cdc-project.svc.cluster.local:9093,redpanda-2.redpanda.cdc-project.svc.cluster.local:9093"
+        - name: CONNECT_REST_PORT
+          value: "8083"
+        - name: CONNECT_GROUP_ID
+          value: "cdc-connect-group"
+        - name: CONNECT_CONFIG_STORAGE_TOPIC
+          value: "connect-configs"
+        - name: CONNECT_OFFSET_STORAGE_TOPIC
+          value: "connect-offsets"
+        - name: CONNECT_STATUS_STORAGE_TOPIC
+          value: "connect-status"
+        - name: CONNECT_KEY_CONVERTER
+          value: "org.apache.kafka.connect.json.JsonConverter"
+        - name: CONNECT_VALUE_CONVERTER
+          value: "org.apache.kafka.connect.json.JsonConverter"
+        - name: CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE
+          value: "false"
+        - name: CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE
+          value: "false"
+        - name: CONNECT_INTERNAL_KEY_CONVERTER
+          value: "org.apache.kafka.connect.json.JsonConverter"
+        - name: CONNECT_INTERNAL_VALUE_CONVERTER
+          value: "org.apache.kafka.connect.json.JsonConverter"
+        - name: CONNECT_INTERNAL_KEY_CONVERTER_SCHEMAS_ENABLE
+          value: "false"
+        - name: CONNECT_INTERNAL_VALUE_CONVERTER_SCHEMAS_ENABLE
+          value: "false"
+        - name: CONNECT_REST_ADVERTISED_HOST_NAME
+          value: "kafka-connect.cdc-project.svc.cluster.local"
+        - name: CONNECT_LOG4J_ROOT_LOGLEVEL
+          value: "INFO"
+        - name: CONNECT_LOG4J_LOGGERS
+          value: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+        - name: CONNECT_PLUGIN_PATH
+          value: "/usr/share/java,/usr/share/confluent-hub-components"
+        
+        # AWS Configuration (from secrets)
+        - name: AWS_REGION
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: aws-region
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: aws-access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: aws-secret-access-key
+        
+        # RDS Configuration (from secrets)
+        - name: AWS_RDS_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: rds-credentials
+              key: aws-rds-endpoint
+        - name: AWS_RDS_DBNAME
+          valueFrom:
+            secretKeyRef:
+              name: rds-credentials
+              key: aws-rds-dbname
+        - name: AWS_RDS_USER
+          valueFrom:
+            secretKeyRef:
+              name: rds-credentials
+              key: aws-rds-user
+        - name: AWS_RDS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: rds-credentials
+              key: aws-rds-password
+        - name: AWS_RDS_PORT
+          valueFrom:
+            secretKeyRef:
+              name: rds-credentials
+              key: aws-rds-port
+        
+        # S3 Configuration (from secrets)
+        - name: S3_BUCKET_NAME
+          valueFrom:
+            secretKeyRef:
+              name: s3-config
+              key: s3-bucket-name
+        
+        # CDC Configuration (from configmap)
+        - name: POSTGRES_SCHEMA_TO_TRACK
+          valueFrom:
+            configMapKeyRef:
+              name: cdc-config
+              key: postgres-schema-to-track
+        - name: POSTGRES_TABLE_TO_TRACK
+          valueFrom:
+            configMapKeyRef:
+              name: cdc-config
+              key: postgres-table-to-track
+        - name: REPLICATION_SLOT_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: cdc-config
+              key: replication-slot-name
+        
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 5
+        
+        volumeMounts:
+        - name: connector-plugins
+          mountPath: /usr/share/confluent-hub-components
+          readOnly: true
+      
+      volumes:
+      - name: connector-plugins
+        emptyDir: {}
+      
+      initContainers:
+      - name: download-connectors
+        image: alpine:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -ex
+          
+          echo "Installing required tools..."
+          apk add --no-cache curl tar unzip
+          
+          echo "Downloading and extracting Debezium PostgreSQL Connector..."
+          curl -fL -o /tmp/debezium-connector-postgres.tar.gz "https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/${DEBEZIUM_CONNECTOR_VERSION}/debezium-connector-postgres-${DEBEZIUM_CONNECTOR_VERSION}-plugin.tar.gz"
+          tar -xzf /tmp/debezium-connector-postgres.tar.gz -C /shared-plugins/
+
+          echo "Downloading and extracting S3 Sink Connector..."
+          curl -fL -o /tmp/kafka-connect-s3.zip "https://api.hub.confluent.io/api/plugins/confluentinc/kafka-connect-s3/versions/10.6.7/confluentinc-kafka-connect-s3-10.6.7.zip"
+          unzip /tmp/kafka-connect-s3.zip -d /shared-plugins/
+          
+          echo "Connector download and extraction completed"
+        env:
+        - name: DEBEZIUM_CONNECTOR_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: cdc-config
+              key: debezium-connector-version
+        - name: S3_SINK_CONNECTOR_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: cdc-config
+              key: s3-sink-connector-version
+        volumeMounts:
+        - name: connector-plugins
+          mountPath: /shared-plugins 

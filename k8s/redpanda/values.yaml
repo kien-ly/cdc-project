@@ -1,0 +1,105 @@
+# Redpanda Helm Chart Values for Local CDC Development
+# This configuration is optimized for local development on Docker Desktop Kubernetes
+
+# Redpanda cluster configuration
+cluster:
+  # Number of Redpanda brokers
+  replicas: 3
+  
+  # Redpanda version
+  image:
+    repository: vectorized/redpanda
+    tag: v23.2.15
+    
+  # Resource limits for local development
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+      
+  # Storage configuration for local development
+  storage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 10Gi
+          
+  # Redpanda configuration
+  config:
+    # Enable all listeners for local development
+    rpk:
+      kafka_api:
+        - address: 0.0.0.0:9092
+          name: kafka
+      admin_api:
+        - address: 0.0.0.0:9644
+          name: admin
+      pandaproxy_api:
+        - address: 0.0.0.0:8082
+          name: proxy
+      schema_registry_api:
+        - address: 0.0.0.0:8081
+          name: schema-registry
+          
+    # Redpanda core configuration
+    redpanda:
+      # Enable all features for CDC
+      enable_transactions: true
+      enable_idempotence: true
+      enable_rack_awareness: false
+      
+      # Log configuration
+      log:
+        level: info
+        
+      # Memory configuration
+      memory:
+        reserve: 100Mi
+        
+      # Network configuration
+      kafka_api:
+        - address: 0.0.0.0:9092
+          name: kafka
+      admin_api:
+        - address: 0.0.0.0:9644
+          name: admin
+      pandaproxy_api:
+        - address: 0.0.0.0:8082
+          name: proxy
+      schema_registry_api:
+        - address: 0.0.0.0:8081
+          name: schema-registry
+
+# Service configuration
+service:
+  # NodePort for external access from host machine
+  type: NodePort
+  kafka:
+    nodePort: 30092
+  admin:
+    nodePort: 30964
+  proxy:
+    nodePort: 30082
+  schemaRegistry:
+    nodePort: 30081
+  internal:
+    annotations: {}
+
+# Ingress configuration (disabled for local development)
+ingress:
+  enabled: false
+
+# Monitoring configuration
+monitoring:
+  enabled: false
+
+# TLS configuration (disabled for local development)
+tls:
+  enabled: false
+
+# Security configuration (disabled for local development)
+auth:
+  enabled: false 
