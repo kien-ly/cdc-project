@@ -52,3 +52,7 @@ htmlcov/
 logs/
 .log 
 .source
+
+connectors/debezium-postgres-config.json
+*env.sh
+*del.sh

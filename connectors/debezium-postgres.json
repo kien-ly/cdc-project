@@ -38,8 +38,9 @@
     "errors.log.enable": "true",
     "errors.log.include.messages": "true",
     "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-    "key.converter.schemas.enable": "false",
+    "key.converter.schemas.enable": "true",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-    "value.converter.schemas.enable": "false"
+    "value.converter.schemas.enable": "true",
+    "plugin.name": "pgoutput"
   }
 } 

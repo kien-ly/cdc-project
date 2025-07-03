@@ -1,4 +1,5 @@
 source .env
+
 # Export all environment variables so they are available to child scripts
 export AWS_RDS_ENDPOINT
 export AWS_RDS_DBNAME

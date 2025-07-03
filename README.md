@@ -74,6 +74,7 @@ This architecture ensures modularity, scalability, and compatibility with the Ka
 
 Create a `.env` file in the project root:
 
+
 ```bash
 # AWS RDS Configuration
 AWS_RDS_ENDPOINT=your-rds-endpoint.region.rds.amazonaws.com
@@ -106,7 +107,7 @@ S3_SINK_CONNECTOR_VERSION=10.7.0
 NAMESPACE=cdc-project
 REDPANDA_REPLICAS=3
 ```
-
+if use postgres local should active before
 ### 2. Automated Deployment
 
 Run the automated setup script:
@@ -115,6 +116,8 @@ Run the automated setup script:
 chmod +x run.sh
 ./run.sh
 ```
+
+> **Important:** After running the setup script, any previous port-forwarding sessions will be terminated. If you need to access Kafka Connect or Redpanda locally, re-run the port-forward commands shown in the troubleshooting section.
 
 The script will:
 - Verify prerequisites
@@ -247,6 +250,8 @@ kubectl get svc -n cdc-project
 # Port forward for debugging
 kubectl port-forward -n cdc-project svc/redpanda 9092:9092
 kubectl port-forward -n cdc-project svc/kafka-connect 8083:8083
+
+> **Note:** Running `setup.sh` (or `run.sh`) will terminate any existing port-forward sessions, as the script may redeploy pods and clean up port-forwards. After running the setup script, you must re-run the above `kubectl port-forward` commands if you want to access Kafka Connect or Redpanda locally.
 ```
 
 ## Important Notes

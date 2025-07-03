@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kafka-connect
-  namespace: cdc-project
+  namespace: ${NAMESPACE}
   labels:
     app: kafka-connect
     component: cdc-pipeline
@@ -173,19 +173,36 @@ spec:
         - -c
         - |
           set -ex
-          
+
           echo "Installing required tools..."
           apk add --no-cache curl tar unzip
-          
-          echo "Downloading and extracting Debezium PostgreSQL Connector..."
-          curl -fL -o /tmp/debezium-connector-postgres.tar.gz "https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/${DEBEZIUM_CONNECTOR_VERSION}/debezium-connector-postgres-${DEBEZIUM_CONNECTOR_VERSION}-plugin.tar.gz"
-          tar -xzf /tmp/debezium-connector-postgres.tar.gz -C /shared-plugins/
 
-          echo "Downloading and extracting S3 Sink Connector..."
-          curl -fL -o /tmp/kafka-connect-s3.zip "https://api.hub.confluent.io/api/plugins/confluentinc/kafka-connect-s3/versions/10.6.7/confluentinc-kafka-connect-s3-10.6.7.zip"
-          unzip /tmp/kafka-connect-s3.zip -d /shared-plugins/
-          
+          # Debezium PostgreSQL Connector
+          if [ ! -f /shared-plugins/debezium-connector-postgres/debezium-connector-postgres.jar ]; then
+            echo "Downloading and extracting Debezium PostgreSQL Connector..."
+            curl -fL -o /tmp/debezium-connector-postgres.tar.gz "https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/${DEBEZIUM_CONNECTOR_VERSION}/debezium-connector-postgres-${DEBEZIUM_CONNECTOR_VERSION}-plugin.tar.gz"
+            mkdir -p /shared-plugins/debezium-connector-postgres
+            tar -xzf /tmp/debezium-connector-postgres.tar.gz -C /shared-plugins/debezium-connector-postgres
+          else
+            echo "Debezium PostgreSQL Connector already exists, skipping download."
+          fi
+
+          # S3 Sink Connector
+          if [ ! -d /shared-plugins/kafka-connect-s3 ]; then
+            echo "Downloading and extracting S3 Sink Connector..."
+            curl -fL -o /tmp/kafka-connect-s3.zip "https://api.hub.confluent.io/api/plugins/confluentinc/kafka-connect-s3/versions/${S3_SINK_CONNECTOR_VERSION}/confluentinc-kafka-connect-s3-${S3_SINK_CONNECTOR_VERSION}.zip"
+            unzip /tmp/kafka-connect-s3.zip -d /shared-plugins/
+          else
+            echo "S3 Sink Connector already exists, skipping download."
+          fi
+
           echo "Connector download and extraction completed"
+
+          # Clean up temporary files
+          echo "Cleaning up temporary files..."
+          rm -f /tmp/debezium-connector-postgres.tar.gz
+          rm -f /tmp/kafka-connect-s3.zip
+
         env:
         - name: DEBEZIUM_CONNECTOR_VERSION
           valueFrom:

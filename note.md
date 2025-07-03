@@ -1,6 +1,9 @@
-kubectl port-forward -n "$NAMESPACE" svc/redpanda-console 9090:8080
-kubectl port-forward -n "$NAMESPACE" svc/kafka-connect 8083:8083
+kubectl port-forward -n cdc-project svc/redpanda-console 9090:8080
+kubectl port-forward -n cdc-project svc/kafka-connect 8083:8083
 
+curl http://localhost:8083/connectors
+curl http://localhost:8083/connectors/debezium-postgres/status
+curl http://localhost:8083/connectors/s3-sink/status
 
 kubectl --namespace cdc-project rollout status statefulset redpanda --watch
 

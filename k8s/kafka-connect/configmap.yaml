@@ -2,19 +2,19 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cdc-config
-  namespace: cdc-project
+  namespace: ${NAMESPACE}
   labels:
     app: cdc-config
     component: cdc-pipeline
 data:
   # PostgreSQL CDC Configuration
-  postgres-schema-to-track: "public"
-  postgres-table-to-track: "customers"
-  replication-slot-name: "debezium_slot"
+  postgres-schema-to-track: "${POSTGRES_SCHEMA_TO_TRACK}"
+  postgres-table-to-track: "${POSTGRES_TABLE_TO_TRACK}"
+  replication-slot-name: "${REPLICATION_SLOT_NAME}"
   
   # Connector Versions
-  debezium-connector-version: "2.3.0.Final"
-  s3-sink-connector-version: "10.6.7"
+  debezium-connector-version: "${DEBEZIUM_CONNECTOR_VERSION}"
+  s3-sink-connector-version: "${S3_SINK_CONNECTOR_VERSION}"
   
   # Kafka Connect Configuration
   connect-group-id: "cdc-connect-group"
