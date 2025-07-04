@@ -11,7 +11,7 @@
     "rotate.interval.ms": "10000",
     "format.class": "io.confluent.connect.s3.format.parquet.ParquetFormat",
     "partitioner.class": "io.confluent.connect.storage.partitioner.TimeBasedPartitioner",
-    "path.format": "yyyy-MM-dd",
+    "path.format": "dt=yyyy-MM-dd",
     "partition.duration.ms": "3600000",
     "locale": "en-US",
     "timezone": "UTC",
